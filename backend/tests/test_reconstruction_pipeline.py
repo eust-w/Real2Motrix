@@ -57,7 +57,8 @@ def test_colmap_openmvs_uses_video_oriented_quality_options(tmp_path: Path, monk
         match_strategy="sequential",
     )
 
-    assert result == work_dir / "mvs" / "scene_dense_mesh_refine_texture.obj"
+    assert result == work_dir / "mvs" / "scene_dense_mesh_refine.ply"
+    assert (work_dir / "mvs" / "scene_dense_mesh_refine_texture.obj").exists()
     feature_command = commands[0]
     assert feature_command[:2] == ["colmap", "feature_extractor"]
     assert feature_command[feature_command.index("--ImageReader.single_camera") + 1] == "1"

@@ -4,9 +4,9 @@ import trimesh
 
 from app.database import Database
 from app.services.asset_service import list_assets
-from app.services.job_service import create_job, get_job
-from app.services.project_service import create_project
-from app.worker import run_worker_once
+from app.services.job_service import create_job, get_job, list_job_logs, mark_job_running
+from app.services.project_service import create_project, get_project, update_project_status
+from app.worker import recover_interrupted_running_jobs, run_worker_once
 
 
 def test_worker_registers_scene_and_object_assets_from_manifest(tmp_path: Path) -> None:
@@ -39,3 +39,20 @@ def test_worker_registers_scene_and_object_assets_from_manifest(tmp_path: Path) 
     }.issubset(asset_types)
     assert object_visual["metadata_json"]["object_id"] == "object_001"
     assert object_visual["metadata_json"]["visual_mesh"].endswith("objects/object_001/visual.obj")
+
+
+def test_worker_recovers_interrupted_running_jobs_and_preserves_queued_work(tmp_path: Path) -> None:
+    db = Database(tmp_path / "real2motrix.sqlite3")
+    project = create_project(db, tmp_path / "data", "Interrupted scan", "", "mesh")
+    running_job = create_job(db, project["id"], "mesh", tmp_path / "running.obj")
+    mark_job_running(db, running_job["id"])
+    update_project_status(db, project["id"], "running")
+    queued_job = create_job(db, project["id"], "mesh", tmp_path / "queued.obj")
+
+    recovered = recover_interrupted_running_jobs(db)
+
+    assert [job["id"] for job in recovered] == [running_job["id"]]
+    assert get_job(db, running_job["id"])["status"] == "failed"
+    assert get_job(db, queued_job["id"])["status"] == "queued"
+    assert get_project(db, project["id"])["status"] == "queued"
+    assert any("worker interrupted" in log["message"] for log in list_job_logs(db, running_job["id"]))

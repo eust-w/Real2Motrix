@@ -10,13 +10,14 @@ from app.services.asset_service import clear_project_assets, create_asset
 from app.services.job_service import (
     add_job_log,
     get_job,
+    list_running_jobs,
     mark_job_completed,
     mark_job_failed,
     mark_job_running,
     next_queued_job,
     update_job_progress,
 )
-from app.services.project_service import update_project_status
+from app.services.project_service import sync_project_status_from_jobs, update_project_status
 from app.settings import get_settings
 
 
@@ -115,12 +116,26 @@ def run_worker_once(db: Database, output_dir: Path) -> bool:
         return True
 
 
+def recover_interrupted_running_jobs(db: Database) -> list[Dict]:
+    running_jobs = list_running_jobs(db)
+    message = "worker interrupted before job completed; rerun or regenerate this task"
+    affected_project_ids = set()
+    for job in running_jobs:
+        add_job_log(db, job["id"], "error", message)
+        mark_job_failed(db, job["id"], message)
+        affected_project_ids.add(job["project_id"])
+    for project_id in affected_project_ids:
+        sync_project_status_from_jobs(db, project_id)
+    return running_jobs
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Real2Motrix local worker process")
     parser.add_argument("--once", action="store_true", help="process one queued job then exit")
     args = parser.parse_args()
     settings = get_settings()
     db = Database(settings.database_path)
+    recover_interrupted_running_jobs(db)
     while True:
         processed = run_worker_once(db, settings.output_dir)
         if args.once:

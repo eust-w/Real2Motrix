@@ -1,9 +1,12 @@
+import builtins
 from pathlib import Path
 import json
 
+import numpy as np
 import trimesh
 
 from app.pipeline.full_pipeline import run_mesh_pipeline
+from app.pipeline.mesh import scene_split
 
 
 def test_mesh_pipeline_exports_valid_motrix_package(tmp_path: Path) -> None:
@@ -64,3 +67,30 @@ def test_mesh_pipeline_exports_separate_scene_and_object_assets(tmp_path: Path) 
     assert 'name="object_001"' in scene_xml
     assert 'filename="meshes/objects/object_001/visual.obj"' in scene_urdf
     assert result.validation_report["summary"]["object_count"] == 1
+
+
+def test_scene_split_skips_dbscan_for_large_single_component_mesh(monkeypatch) -> None:
+    vertices = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+    faces = np.tile(np.array([[0, 1, 2], [0, 1, 3]]), (800, 1))
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+    monkeypatch.setattr(scene_split, "_split_components", lambda visual_mesh: [visual_mesh.copy()])
+    original_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "sklearn.cluster":
+            raise AssertionError("large single-component meshes should not run DBSCAN")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+
+    result = scene_split.split_scene_objects(mesh, max_cluster_faces=100)
+
+    assert result.segmentation["method"] == "connected_components"
+    assert result.segmentation["object_count"] == 0

@@ -206,7 +206,9 @@ def reconstruct_images_with_colmap_openmvs(
     )
     if not textured_obj.exists():
         raise RuntimeError("OpenMVS completed but textured OBJ was not found")
-    return textured_obj
+    if log:
+        log("info", f"using refined mesh for simulation package: {refined_ply}")
+    return refined_ply
 
 
 def _unlink_if_exists(path: Path) -> None:

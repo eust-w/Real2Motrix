@@ -27,6 +27,7 @@ def split_scene_objects(
     visual_mesh: trimesh.Trimesh,
     *,
     max_objects: int = 16,
+    max_cluster_faces: int = 50_000,
     min_area_ratio: float = 0.005,
     min_extent_ratio: float = 0.01,
 ) -> SceneObjectAssets:
@@ -46,6 +47,7 @@ def split_scene_objects(
             min_area=min_area,
             min_extent=min_extent,
             max_objects=max_objects,
+            max_cluster_faces=max_cluster_faces,
             filters=filters,
         )
         if clustered is not None:
@@ -125,16 +127,18 @@ def _split_from_face_clusters(
     min_area: float,
     min_extent: float,
     max_objects: int,
+    max_cluster_faces: int,
     filters: Dict[str, Any],
 ) -> Optional[SceneObjectAssets]:
+    face_count = int(len(visual_mesh.faces))
+    if face_count < max(min_faces * 4, 1000) or face_count > max_cluster_faces:
+        return None
+
     try:
         from sklearn.cluster import DBSCAN
     except ImportError:
         return None
 
-    face_count = int(len(visual_mesh.faces))
-    if face_count < max(min_faces * 4, 1000):
-        return None
     extents = visual_mesh.extents
     scale = np.where(extents <= 1e-9, 1.0, extents)
     features = (visual_mesh.triangles_center - visual_mesh.bounds[0]) / scale

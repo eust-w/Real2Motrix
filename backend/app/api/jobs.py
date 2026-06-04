@@ -7,7 +7,7 @@ from app.database import Database
 from app.schemas import RunRequest
 from app.services.file_service import get_uploaded_file
 from app.services.job_service import create_job, get_job, list_job_logs
-from app.services.project_service import get_project
+from app.services.project_service import get_project, update_project_status
 
 router = APIRouter(prefix="/api", tags=["jobs"])
 
@@ -41,6 +41,7 @@ def run_project(project_id: str, payload: RunRequest, db: Database = Depends(get
             "fast_mode": payload.fast_mode,
         },
     )
+    update_project_status(db, project_id, "queued")
     return job
 
 

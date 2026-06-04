@@ -45,6 +45,22 @@ def update_project_status(db: Database, project_id: str, status: str) -> None:
     )
 
 
+def sync_project_status_from_jobs(db: Database, project_id: str) -> None:
+    rows = db.fetch_all(
+        "SELECT status FROM jobs WHERE project_id = ? ORDER BY created_at DESC",
+        (project_id,),
+    )
+    if not rows:
+        next_status = "created"
+    elif any(row["status"] == "running" for row in rows):
+        next_status = "running"
+    elif any(row["status"] == "queued" for row in rows):
+        next_status = "queued"
+    else:
+        next_status = rows[0]["status"]
+    update_project_status(db, project_id, next_status)
+
+
 def update_project(
     db: Database,
     project_id: str,

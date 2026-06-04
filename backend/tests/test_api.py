@@ -51,6 +51,9 @@ def test_project_upload_and_job_lifecycle(tmp_path: Path) -> None:
     job_response = client.get(f"/api/jobs/{job['id']}")
     assert job_response.status_code == 200
     assert job_response.json()["status"] == "queued"
+    project_after_run = client.get(f"/api/projects/{project['id']}")
+    assert project_after_run.status_code == 200
+    assert project_after_run.json()["status"] == "queued"
 
     logs_response = client.get(f"/api/jobs/{job['id']}/logs")
     assert logs_response.status_code == 200
@@ -102,6 +105,9 @@ def test_project_update_delete_and_regenerate(tmp_path: Path) -> None:
     assert regenerated["source_type"] == "mesh"
     assert regenerated["input_path"] == first_job["input_path"]
     assert regenerated["params_json"]["uploaded_file_ids"] == [uploaded["id"]]
+    project_after_regenerate = client.get(f"/api/projects/{project['id']}")
+    assert project_after_regenerate.status_code == 200
+    assert project_after_regenerate.json()["status"] == "queued"
 
     delete_response = client.delete(f"/api/projects/{project['id']}")
     assert delete_response.status_code == 204

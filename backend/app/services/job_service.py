@@ -56,6 +56,15 @@ def list_jobs(db: Database, project_id: str) -> List[Dict]:
     ]
 
 
+def list_running_jobs(db: Database) -> List[Dict]:
+    return [
+        normalize_job(row)
+        for row in db.fetch_all(
+            "SELECT * FROM jobs WHERE status = 'running' ORDER BY started_at ASC, created_at ASC",
+        )
+    ]
+
+
 def next_queued_job(db: Database) -> Optional[Dict]:
     row = db.fetch_one("SELECT * FROM jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1")
     return normalize_job(row) if row else None
@@ -111,4 +120,3 @@ def normalize_job(row: Dict) -> Dict:
     result = dict(row)
     result["params_json"] = json_loads(result["params_json"])
     return result
-

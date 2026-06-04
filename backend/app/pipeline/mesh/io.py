@@ -4,7 +4,10 @@ import trimesh
 
 
 def load_mesh(path: Path) -> trimesh.Trimesh:
-    loaded = trimesh.load(path, force="scene")
+    load_kwargs = {"force": "scene", "process": False, "maintain_order": True}
+    if Path(path).suffix.lower() == ".obj":
+        load_kwargs["skip_materials"] = True
+    loaded = trimesh.load(path, **load_kwargs)
     if isinstance(loaded, trimesh.Scene):
         geometries = [geom for geom in loaded.geometry.values() if isinstance(geom, trimesh.Trimesh)]
         if not geometries:
@@ -22,4 +25,3 @@ def load_mesh(path: Path) -> trimesh.Trimesh:
 def export_obj(mesh: trimesh.Trimesh, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     mesh.export(path)
-

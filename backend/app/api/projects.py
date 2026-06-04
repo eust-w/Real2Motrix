@@ -9,7 +9,7 @@ from app.schemas import ProjectCreate, ProjectUpdate
 from app.services.capture_session_service import list_capture_sessions
 from app.services.file_service import get_uploaded_file, list_uploaded_files
 from app.services.job_service import create_job, list_jobs
-from app.services.project_service import create_project, delete_project, get_project, list_projects, update_project
+from app.services.project_service import create_project, delete_project, get_project, list_projects, update_project, update_project_status
 from app.settings import Settings
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -66,13 +66,15 @@ def regenerate_project_route(project_id: str, db: Database = Depends(get_db)):
     if source is None:
         raise HTTPException(status_code=400, detail="no previous input available for regeneration")
 
-    return create_job(
+    job = create_job(
         db,
         project_id=project_id,
         source_type=source["source_type"],
         input_path=source["input_path"],
         params=source["params"],
     )
+    update_project_status(db, project_id, "queued")
+    return job
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
