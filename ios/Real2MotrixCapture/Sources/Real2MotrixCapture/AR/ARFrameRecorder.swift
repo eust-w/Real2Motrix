@@ -12,9 +12,12 @@ final class ARFrameRecorder {
         return false
     }
 
+    func imageData(frame: ARFrame) -> Data? {
+        ImageUtils.jpegData(from: frame.capturedImage)
+    }
+
     func write(frame: ARFrame, index: Int, writer: CaptureFileWriter) throws {
-        guard let data = ImageUtils.jpegData(from: frame.capturedImage) else { return }
+        guard let data = imageData(frame: frame) else { return }
         try writer.writeFrame(data, frameIndex: index)
     }
 }
-

@@ -10,6 +10,10 @@ final class MeshAnchorExporter {
 
     func writeOBJ(to url: URL) throws {
         guard !anchors.isEmpty else { return }
+        try objString().write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    func objString() -> String {
         var output = ""
         var vertexOffset = 0
         for anchor in anchors {
@@ -29,7 +33,7 @@ final class MeshAnchorExporter {
             }
             vertexOffset += vertices.count
         }
-        try output.write(to: url, atomically: true, encoding: .utf8)
+        return output
     }
 
     private func vertex(at index: Int, source: ARGeometrySource) -> SIMD3<Float> {
@@ -50,4 +54,3 @@ final class MeshAnchorExporter {
         }
     }
 }
-

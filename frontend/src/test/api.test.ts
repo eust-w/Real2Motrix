@@ -66,4 +66,36 @@ describe("api client", () => {
       expect.objectContaining({ method: "DELETE" })
     );
   });
+
+  it("supports live scan session polling and finalization requests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "live-1", status: "running", live_session: { id: "live-1" }, job: { id: "job-1" } })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await (api as any).createLiveSession("task-1", {
+      capture_type: "scene",
+      capture_mode: "arkit_pose",
+      device_model: "iPhone",
+      has_lidar: true,
+      target_type: "scene"
+    });
+    await (api as any).listLiveSessions("task-1");
+    await (api as any).getLiveSession("task-1", "live-1");
+    await (api as any).finishLiveSession("task-1", "live-1");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8000/api/projects/task-1/live-sessions",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "http://localhost:8000/api/projects/task-1/live-sessions");
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "http://localhost:8000/api/projects/task-1/live-sessions/live-1");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      "http://localhost:8000/api/projects/task-1/live-sessions/live-1/finish",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
 });

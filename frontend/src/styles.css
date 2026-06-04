@@ -247,6 +247,15 @@ select {
   grid-column: 1;
 }
 
+.live-panel {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.job-panel {
+  grid-column: 1 / span 2;
+}
+
 .preview-panel {
   grid-column: 3;
   grid-row: 1 / span 2;
@@ -356,6 +365,119 @@ select {
 .progress-track div {
   height: 100%;
   background: #0f766e;
+}
+
+.live-target-tabs,
+.live-actions,
+.live-warnings,
+.live-meter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-target-tabs {
+  margin-bottom: 12px;
+}
+
+.live-target-tabs button {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 800;
+}
+
+.live-target-tabs .selected {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.live-actions {
+  margin-bottom: 12px;
+}
+
+.live-preview-wrap {
+  margin-top: 12px;
+}
+
+.live-preview-canvas {
+  height: 286px;
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.live-preview-canvas canvas {
+  display: block;
+}
+
+.live-meter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.live-meter div {
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+  min-width: 0;
+}
+
+.live-meter strong,
+.live-meter span {
+  display: block;
+}
+
+.live-meter strong {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.live-meter span {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.live-progress-track {
+  height: 10px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.live-progress-track div {
+  height: 100%;
+  background: #0f766e;
+}
+
+.live-details {
+  margin-top: 10px;
+}
+
+.live-warnings {
+  margin-top: 12px;
+}
+
+.live-warnings span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .details {
@@ -602,11 +724,14 @@ select {
 
   .task-panel,
   .upload-panel,
+  .live-panel,
+  .job-panel,
   .preview-panel {
     grid-column: auto;
   }
 
   .preview-panel,
+  .live-panel,
   .logs-panel {
     grid-row: auto;
   }

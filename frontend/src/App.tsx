@@ -15,7 +15,7 @@ import {
   Upload
 } from "lucide-react";
 import { api } from "./lib/api";
-import type { Asset, Health, Job, JobLog, Project, UploadedFile } from "./lib/types";
+import type { Asset, Health, Job, JobLog, LiveScanSession, Project, UploadedFile } from "./lib/types";
 import {
   createTranslator,
   localeLabels,
@@ -30,6 +30,7 @@ import { JobLogs } from "./components/JobLogs";
 import { AssetTree } from "./components/AssetTree";
 import { DependencyStatus } from "./components/DependencyStatus";
 import { ValidationReport } from "./components/ValidationReport";
+import { LiveScanPanel, type LiveTargetType } from "./components/LiveScanPanel";
 
 const sourceTypes = ["mesh", "ios_capture", "images", "video", "pointcloud", "polycam", "scaniverse", "nerfstudio"];
 
@@ -41,6 +42,9 @@ export default function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [logs, setLogs] = useState<JobLog[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [liveSessions, setLiveSessions] = useState<LiveScanSession[]>([]);
+  const [liveSession, setLiveSession] = useState<LiveScanSession | null>(null);
+  const [liveTargetType, setLiveTargetType] = useState<LiveTargetType>("scene");
   const [taskQuery, setTaskQuery] = useState("");
   const [sourceType, setSourceType] = useState("mesh");
   const [editName, setEditName] = useState("");
@@ -56,6 +60,7 @@ export default function App() {
 
   const t = useMemo(() => createTranslator(locale), [locale]);
   const activeJob = useMemo(() => jobs[0] ?? null, [jobs]);
+  const activeLiveSession = liveSession ?? liveSessions[0] ?? null;
   const filteredProjects = useMemo(() => {
     const query = taskQuery.trim().toLowerCase();
     if (!query) return projects;
@@ -97,9 +102,17 @@ export default function App() {
       if (projectId) {
         const detail = await api.getProject(projectId);
         const nextAssets = await api.listAssets(projectId);
+        const nextLiveSessions = detail.live_sessions ?? [];
         setProject(detail);
         setJobs(detail.jobs ?? []);
         setAssets(nextAssets);
+        setLiveSessions(nextLiveSessions);
+        setLiveSession((current) => {
+          if (current) {
+            return nextLiveSessions.find((item) => item.id === current.id) ?? nextLiveSessions[0] ?? null;
+          }
+          return nextLiveSessions[0] ?? null;
+        });
         setSourceType(detail.source_type);
         if (detail.uploaded_files?.length) {
           setUploadedIds([detail.uploaded_files[0].id]);
@@ -111,6 +124,8 @@ export default function App() {
         setJobs([]);
         setLogs([]);
         setAssets([]);
+        setLiveSessions([]);
+        setLiveSession(null);
         setUploadedIds([]);
         setValidation(null);
       }
@@ -136,6 +151,20 @@ export default function App() {
     }, 2000);
     return () => window.clearInterval(timer);
   }, [activeJob?.id, activeJob?.status, selectedId]);
+
+  useEffect(() => {
+    if (!project || !liveSession || liveSession.status !== "running") return undefined;
+    const timer = window.setInterval(async () => {
+      try {
+        const next = await api.getLiveSession(project.id, liveSession.id);
+        setLiveSession(next);
+        setLiveSessions((current) => [next, ...current.filter((item) => item.id !== next.id)]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [project?.id, liveSession?.id, liveSession?.status]);
 
   useEffect(() => {
     if (previewAssetId && !assets.some((asset) => asset.id === previewAssetId)) {
@@ -217,6 +246,8 @@ export default function App() {
       setJobs([]);
       setLogs([]);
       setAssets([]);
+      setLiveSessions([]);
+      setLiveSession(null);
       setUploadedIds([]);
       setValidation(null);
       await refresh(null);
@@ -249,6 +280,61 @@ export default function App() {
       setValidation(await api.validate(project.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function createLiveScanSession() {
+    if (!project) return;
+    setBusy(true);
+    try {
+      const session = await api.createLiveSession(project.id, {
+        capture_type: liveTargetType === "object" ? "object" : "scene",
+        capture_mode: "arkit_pose",
+        target_type: liveTargetType,
+        device_model: "desktop_browser",
+        has_lidar: false
+      });
+      setLiveSession(session);
+      setLiveSessions((current) => [session, ...current.filter((item) => item.id !== session.id)]);
+      await refresh(project.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshLiveScanSession() {
+    if (!project) return;
+    try {
+      if (liveSession) {
+        const next = await api.getLiveSession(project.id, liveSession.id);
+        setLiveSession(next);
+        setLiveSessions((current) => [next, ...current.filter((item) => item.id !== next.id)]);
+        return;
+      }
+      const nextSessions = await api.listLiveSessions(project.id);
+      setLiveSessions(nextSessions);
+      setLiveSession(nextSessions[0] ?? null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function finishLiveScanSession() {
+    if (!project || !liveSession) return;
+    setBusy(true);
+    try {
+      const response = await api.finishLiveSession(project.id, liveSession.id);
+      setLiveSession(response.live_session);
+      setLiveSessions((current) => [response.live_session, ...current.filter((item) => item.id !== response.live_session.id)]);
+      setJobs((current) => [response.job, ...current.filter((item) => item.id !== response.job.id)]);
+      setLogs([]);
+      await refresh(project.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -427,6 +513,18 @@ export default function App() {
             t={t}
             formatStatus={(status) => statusLabel(status, t)}
             formatSource={(source) => sourceTypeLabel(source, t)}
+          />
+
+          <LiveScanPanel
+            session={activeLiveSession}
+            targetType={liveTargetType}
+            previewObjUrl={project && activeLiveSession ? api.livePreviewUrl(project.id, activeLiveSession.id) : undefined}
+            busy={busy || !project}
+            t={t}
+            onTargetTypeChange={setLiveTargetType}
+            onCreate={() => void createLiveScanSession()}
+            onRefresh={() => void refreshLiveScanSession()}
+            onFinish={() => void finishLiveScanSession()}
           />
 
           <div className="panel preview-panel">

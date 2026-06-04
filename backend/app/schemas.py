@@ -41,6 +41,37 @@ class CaptureSessionOut(BaseModel):
     created_at: str
 
 
+class LiveScanSessionCreate(BaseModel):
+    capture_type: str = "scene"
+    capture_mode: str = "arkit_pose"
+    target_type: str = "scene"
+    device_model: str = "unknown"
+    has_lidar: bool = False
+
+
+class LiveScanSessionOut(BaseModel):
+    id: str
+    project_id: str
+    status: str
+    capture_type: str
+    capture_mode: str
+    target_type: str
+    device_model: str
+    has_lidar: bool
+    root_dir: str
+    frame_count: int
+    depth_frame_count: int
+    mesh_chunk_count: int
+    coverage_json: Dict[str, Any]
+    quality_json: Dict[str, Any]
+    last_pose_json: Dict[str, Any]
+    preview_path: Optional[str]
+    archive_path: Optional[str]
+    created_at: str
+    updated_at: str
+    finished_at: Optional[str]
+
+
 class UploadedFileOut(BaseModel):
     id: str
     project_id: str

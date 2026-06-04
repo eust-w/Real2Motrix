@@ -9,6 +9,7 @@ from app.schemas import ProjectCreate, ProjectUpdate
 from app.services.capture_session_service import list_capture_sessions
 from app.services.file_service import get_uploaded_file, list_uploaded_files
 from app.services.job_service import create_job, list_jobs
+from app.services.live_scan_service import list_live_sessions
 from app.services.project_service import create_project, delete_project, get_project, list_projects, update_project, update_project_status
 from app.settings import Settings
 
@@ -36,6 +37,7 @@ def get_project_route(project_id: str, db: Database = Depends(get_db)):
     except KeyError:
         raise HTTPException(status_code=404, detail="project not found") from None
     project["capture_sessions"] = list_capture_sessions(db, project_id)
+    project["live_sessions"] = list_live_sessions(db, project_id)
     project["uploaded_files"] = list_uploaded_files(db, project_id)
     project["jobs"] = list_jobs(db, project_id)
     return project

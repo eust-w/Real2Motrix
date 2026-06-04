@@ -1,4 +1,4 @@
-import type { Asset, Health, Job, JobLog, Project, UploadedFile } from "./types";
+import type { Asset, Health, Job, JobLog, LiveScanCreateRequest, LiveScanSession, Project, UploadedFile } from "./types";
 
 type LocationLike = Pick<Location, "protocol" | "hostname">;
 
@@ -32,7 +32,8 @@ function generatedAssetPath(path: string): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, init);
+  const url = `${API_BASE}${path}`;
+  const response = init ? await fetch(url, init) : await fetch(url);
   if (!response.ok) {
     let message = `${response.status} ${response.statusText}`;
     try {
@@ -73,6 +74,20 @@ export const api = {
     request<Job>(`/api/projects/${projectId}/regenerate`, {
       method: "POST"
     }),
+  createLiveSession: (projectId: string, payload: LiveScanCreateRequest) =>
+    request<LiveScanSession>(`/api/projects/${projectId}/live-sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }),
+  listLiveSessions: async (projectId: string) =>
+    (await request<{ live_sessions: LiveScanSession[] }>(`/api/projects/${projectId}/live-sessions`)).live_sessions,
+  getLiveSession: (projectId: string, sessionId: string) =>
+    request<LiveScanSession>(`/api/projects/${projectId}/live-sessions/${sessionId}`),
+  finishLiveSession: (projectId: string, sessionId: string) =>
+    request<{ live_session: LiveScanSession; job: Job }>(`/api/projects/${projectId}/live-sessions/${sessionId}/finish`, {
+      method: "POST"
+    }),
   getProject: (projectId: string) => request<Project>(`/api/projects/${projectId}`),
   uploadFiles: async (projectId: string, sourceType: string, files: FileList) => {
     const form = new FormData();
@@ -100,5 +115,7 @@ export const api = {
     `${API_BASE}/api/projects/${projectId}/files/motrix_scene/metadata/asset_manifest.json`,
   visualUrl: (projectId: string) => `${API_BASE}/api/projects/${projectId}/preview/visual`,
   collisionUrl: (projectId: string) => `${API_BASE}/api/projects/${projectId}/preview/collision`,
+  livePreviewUrl: (projectId: string, sessionId: string) =>
+    `${API_BASE}/api/projects/${projectId}/live-sessions/${sessionId}/preview.obj`,
   downloadUrl: (projectId: string) => `${API_BASE}/api/projects/${projectId}/download`
 };

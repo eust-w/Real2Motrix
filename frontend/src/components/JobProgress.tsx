@@ -14,7 +14,7 @@ export function JobProgress({
   formatSource: (source: string) => string;
 }) {
   return (
-    <div className="panel">
+    <div className="panel job-panel">
       <div className="panel-header">
         <div>
           <p>{t("task.subtitle")}</p>

@@ -14,6 +14,9 @@ struct ARCaptureView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(sessionManager.qualityWarning)
                     Text("Frames \(sessionManager.frameCount) · Blur \(sessionManager.averageBlur, specifier: "%.1f") · Brightness \(sessionManager.averageBrightness, specifier: "%.2f")")
+                    if let liveSession = appState.liveSession {
+                        Text("Live \(liveSession.status) · Uploaded \(liveSession.frameCount)")
+                    }
                 }
                 .font(.caption)
                 .padding(10)
@@ -26,7 +29,9 @@ struct ARCaptureView: View {
                                 reviewURL = try? await sessionManager.stopCapture(appState: appState)
                             }
                         } else {
-                            try? sessionManager.startCapture(appState: appState)
+                            Task {
+                                try? await sessionManager.startCapture(appState: appState)
+                            }
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -57,4 +62,3 @@ struct ARViewContainer: UIViewRepresentable {
 
     func updateUIView(_ uiView: ARSCNView, context: Context) {}
 }
-

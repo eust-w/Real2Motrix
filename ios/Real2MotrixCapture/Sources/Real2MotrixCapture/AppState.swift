@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
     @Published var captureMode: CaptureMode = .arkitPose
     @Published var lastZipURL: URL?
     @Published var jobStatus: JobStatus?
+    @Published var liveSession: LiveScanSessionRecord?
     @Published var isBusy = false
 
     var apiClient: APIClient? {

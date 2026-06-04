@@ -61,6 +61,43 @@ class Database:
                     created_at TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS live_scan_sessions (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                    status TEXT NOT NULL DEFAULT 'running',
+                    capture_type TEXT NOT NULL,
+                    capture_mode TEXT NOT NULL,
+                    target_type TEXT NOT NULL,
+                    device_model TEXT NOT NULL,
+                    has_lidar INTEGER NOT NULL DEFAULT 0,
+                    root_dir TEXT NOT NULL,
+                    frame_count INTEGER NOT NULL DEFAULT 0,
+                    depth_frame_count INTEGER NOT NULL DEFAULT 0,
+                    mesh_chunk_count INTEGER NOT NULL DEFAULT 0,
+                    coverage_json TEXT NOT NULL DEFAULT '{}',
+                    quality_json TEXT NOT NULL DEFAULT '{}',
+                    last_pose_json TEXT NOT NULL DEFAULT '{}',
+                    preview_path TEXT,
+                    archive_path TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    finished_at TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS live_scan_frames (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL REFERENCES live_scan_sessions(id) ON DELETE CASCADE,
+                    frame_index INTEGER NOT NULL,
+                    timestamp REAL NOT NULL,
+                    frame_path TEXT NOT NULL,
+                    depth_path TEXT,
+                    pose_json TEXT NOT NULL DEFAULT '{}',
+                    quality_json TEXT NOT NULL DEFAULT '{}',
+                    intrinsics_json TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    UNIQUE(session_id, frame_index)
+                );
+
                 CREATE TABLE IF NOT EXISTS uploaded_files (
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -130,4 +167,3 @@ def json_loads(value: Optional[str]) -> Any:
 
 def json_dumps(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True)
-
