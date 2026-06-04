@@ -34,4 +34,36 @@ describe("api client", () => {
       "http://localhost:8000/api/projects/project-1/files/motrix_scene/meshes/objects/object_001/visual.obj"
     );
   });
+
+  it("supports task update, delete, and regeneration requests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "task-1", name: "Edited task" })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await (api as any).updateProject("task-1", {
+      name: "Edited task",
+      description: "Updated",
+      source_type: "mesh"
+    });
+    await (api as any).regenerateProject("task-1");
+    await (api as any).deleteProject("task-1");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8000/api/projects/task-1",
+      expect.objectContaining({ method: "PATCH" })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:8000/api/projects/task-1/regenerate",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "http://localhost:8000/api/projects/task-1",
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
 });

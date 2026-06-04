@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Download, FolderPlus, HardDrive, Languages, Play, RefreshCw, Upload } from "lucide-react";
+import {
+  Box,
+  Download,
+  FolderPlus,
+  HardDrive,
+  Languages,
+  Play,
+  RefreshCw,
+  RotateCw,
+  Save,
+  Search,
+  Settings,
+  Trash2,
+  Upload
+} from "lucide-react";
 import { api } from "./lib/api";
 import type { Asset, Health, Job, JobLog, Project, UploadedFile } from "./lib/types";
 import {
@@ -27,7 +41,11 @@ export default function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [logs, setLogs] = useState<JobLog[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [taskQuery, setTaskQuery] = useState("");
   const [sourceType, setSourceType] = useState("mesh");
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editSourceType, setEditSourceType] = useState("mesh");
   const [uploadedIds, setUploadedIds] = useState<string[]>([]);
   const [validation, setValidation] = useState<Record<string, unknown> | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("scene");
@@ -38,6 +56,13 @@ export default function App() {
 
   const t = useMemo(() => createTranslator(locale), [locale]);
   const activeJob = useMemo(() => jobs[0] ?? null, [jobs]);
+  const filteredProjects = useMemo(() => {
+    const query = taskQuery.trim().toLowerCase();
+    if (!query) return projects;
+    return projects.filter((item) =>
+      [item.name, item.description, item.source_type, item.status].some((value) => value.toLowerCase().includes(query))
+    );
+  }, [projects, taskQuery]);
   const selectedPreviewAsset = useMemo(
     () => assets.find((asset) => asset.id === previewAssetId) ?? null,
     [assets, previewAssetId]
@@ -47,13 +72,27 @@ export default function App() {
     [project?.id, assets, selectedPreviewAsset, t]
   );
 
-  async function refresh() {
+  useEffect(() => {
+    if (!project) {
+      setEditName("");
+      setEditDescription("");
+      setEditSourceType("mesh");
+      return;
+    }
+    setEditName(project.name);
+    setEditDescription(project.description);
+    setEditSourceType(project.source_type);
+    setSourceType(project.source_type);
+  }, [project?.id, project?.name, project?.description, project?.source_type]);
+
+  async function refresh(preferredId: string | null | undefined = selectedId) {
     setError(null);
     try {
       const [nextHealth, nextProjects] = await Promise.all([api.health(), api.listProjects()]);
       setHealth(nextHealth);
       setProjects(nextProjects);
-      const projectId = selectedId ?? nextProjects[0]?.id ?? null;
+      const projectId =
+        preferredId && nextProjects.some((item) => item.id === preferredId) ? preferredId : nextProjects[0]?.id ?? null;
       setSelectedId(projectId);
       if (projectId) {
         const detail = await api.getProject(projectId);
@@ -61,9 +100,19 @@ export default function App() {
         setProject(detail);
         setJobs(detail.jobs ?? []);
         setAssets(nextAssets);
+        setSourceType(detail.source_type);
         if (detail.uploaded_files?.length) {
           setUploadedIds([detail.uploaded_files[0].id]);
+        } else {
+          setUploadedIds([]);
         }
+      } else {
+        setProject(null);
+        setJobs([]);
+        setLogs([]);
+        setAssets([]);
+        setUploadedIds([]);
+        setValidation(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -103,7 +152,7 @@ export default function App() {
         source_type: String(formData.get("source_type") ?? "mesh")
       });
       setSelectedId(created.id);
-      await refresh();
+      await refresh(created.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -117,7 +166,7 @@ export default function App() {
     try {
       const response = await api.uploadFiles(project.id, sourceType, files);
       setUploadedIds(response.files.map((file: UploadedFile) => file.id));
-      await refresh();
+      await refresh(project.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -132,6 +181,61 @@ export default function App() {
       const job = await api.runProject(project.id, sourceType, uploadedIds);
       setJobs((current) => [job, ...current]);
       setLogs([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateTask(formData: FormData) {
+    if (!project) return;
+    setBusy(true);
+    try {
+      const updated = await api.updateProject(project.id, {
+        name: String(formData.get("name") ?? project.name),
+        description: String(formData.get("description") ?? ""),
+        source_type: String(formData.get("source_type") ?? project.source_type)
+      });
+      setProject((current) => (current ? { ...current, ...updated } : updated));
+      setSourceType(updated.source_type);
+      await refresh(updated.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteTask() {
+    if (!project) return;
+    setBusy(true);
+    try {
+      await api.deleteProject(project.id);
+      setSelectedId(null);
+      setProject(null);
+      setJobs([]);
+      setLogs([]);
+      setAssets([]);
+      setUploadedIds([]);
+      setValidation(null);
+      await refresh(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function regenerateTask() {
+    if (!project) return;
+    setBusy(true);
+    try {
+      const job = await api.regenerateProject(project.id);
+      setJobs((current) => [job, ...current]);
+      setLogs([]);
+      setSourceType(job.source_type);
+      await refresh(project.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -192,7 +296,12 @@ export default function App() {
             <HardDrive size={16} />
             {t("projects.title")}
           </div>
-          {projects.map((item) => (
+          <label className="project-search">
+            <Search size={14} />
+            <input value={taskQuery} onChange={(event) => setTaskQuery(event.target.value)} placeholder={t("projects.search")} />
+          </label>
+          {filteredProjects.length === 0 ? <p className="empty">{t("projects.empty")}</p> : null}
+          {filteredProjects.map((item) => (
             <button
               className={item.id === selectedId ? "project-row active" : "project-row"}
               key={item.id}
@@ -200,11 +309,7 @@ export default function App() {
                 setSelectedId(item.id);
                 setPreviewMode("scene");
                 setValidation(null);
-                void api.getProject(item.id).then((detail) => {
-                  setProject(detail);
-                  setJobs(detail.jobs ?? []);
-                });
-                void api.listAssets(item.id).then(setAssets);
+                void refresh(item.id);
               }}
             >
               <span>{item.name}</span>
@@ -240,6 +345,56 @@ export default function App() {
         {error && <div className="error-banner">{error}</div>}
 
         <section className="grid">
+          <div className="panel task-panel">
+            <div className="panel-header">
+              <div>
+                <p>{t("task.detailsSubtitle")}</p>
+                <h2>{t("task.detailsTitle")}</h2>
+              </div>
+              <Settings size={20} />
+            </div>
+            {project ? (
+              <form className="task-form" action={updateTask}>
+                <label className="field-label">{t("task.detailsName")}</label>
+                <input name="name" value={editName} onChange={(event) => setEditName(event.target.value)} required />
+                <label className="field-label">{t("task.detailsDescription")}</label>
+                <input
+                  name="description"
+                  value={editDescription}
+                  onChange={(event) => setEditDescription(event.target.value)}
+                />
+                <label className="field-label">{t("task.detailsSource")}</label>
+                <select
+                  name="source_type"
+                  value={editSourceType}
+                  onChange={(event) => setEditSourceType(event.target.value)}
+                >
+                  {sourceTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {sourceTypeLabel(type, t)}
+                    </option>
+                  ))}
+                </select>
+                <div className="task-actions">
+                  <button className="primary" disabled={busy}>
+                    <Save size={16} />
+                    {t("task.save")}
+                  </button>
+                  <button className="ghost" disabled={busy} type="button" onClick={() => void regenerateTask()}>
+                    <RotateCw size={16} />
+                    {t("task.regenerate")}
+                  </button>
+                  <button className="ghost danger" disabled={busy} type="button" onClick={() => void deleteTask()}>
+                    <Trash2 size={16} />
+                    {t("task.delete")}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="empty">{t("workspace.noProject")}</p>
+            )}
+          </div>
+
           <div className="panel upload-panel">
             <div className="panel-header">
               <div>

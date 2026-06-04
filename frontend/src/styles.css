@@ -81,6 +81,23 @@ button {
   gap: 10px;
 }
 
+.project-search {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #18243a;
+}
+
+.project-search input {
+  border: 0;
+  padding-inline: 0;
+  background: transparent;
+}
+
 input,
 select {
   width: 100%;
@@ -121,7 +138,8 @@ select {
 }
 
 .sidebar button:disabled,
-.primary:disabled {
+.primary:disabled,
+.ghost:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -203,6 +221,11 @@ select {
   padding: 8px 10px;
 }
 
+.danger {
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(260px, 0.85fr) minmax(280px, 1fr) minmax(430px, 1.65fr);
@@ -219,7 +242,16 @@ select {
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
-.preview-panel,
+.task-panel,
+.upload-panel {
+  grid-column: 1;
+}
+
+.preview-panel {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
 .logs-panel {
   grid-row: span 2;
 }
@@ -246,6 +278,18 @@ select {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .field-label {
@@ -498,6 +542,12 @@ select {
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .task-panel,
+  .upload-panel,
+  .preview-panel {
+    grid-column: auto;
   }
 
   .preview-panel,

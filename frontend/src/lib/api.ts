@@ -43,6 +43,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new Error(message);
   }
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.json() as Promise<T>;
 }
 
@@ -55,6 +58,20 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
+    }),
+  updateProject: (projectId: string, payload: { name: string; description: string; source_type: string }) =>
+    request<Project>(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }),
+  deleteProject: (projectId: string) =>
+    request<void>(`/api/projects/${projectId}`, {
+      method: "DELETE"
+    }),
+  regenerateProject: (projectId: string) =>
+    request<Job>(`/api/projects/${projectId}/regenerate`, {
+      method: "POST"
     }),
   getProject: (projectId: string) => request<Project>(`/api/projects/${projectId}`),
   uploadFiles: async (projectId: string, sourceType: string, files: FileList) => {

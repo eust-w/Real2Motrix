@@ -9,6 +9,12 @@ class ProjectCreate(BaseModel):
     source_type: str = "ios_capture"
 
 
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1)
+    description: Optional[str] = None
+    source_type: Optional[str] = None
+
+
 class ProjectOut(BaseModel):
     id: str
     name: str
@@ -88,4 +94,3 @@ class HealthOut(BaseModel):
     ok: bool
     database: str
     dependencies: Dict[str, Dict[str, Any]]
-

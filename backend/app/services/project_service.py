@@ -1,6 +1,7 @@
 import uuid
+import shutil
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from app.database import Database, utc_now
 
@@ -32,8 +33,9 @@ def list_projects(db: Database) -> List[Dict]:
 
 
 def delete_project(db: Database, project_id: str) -> None:
-    get_project(db, project_id)
+    project = get_project(db, project_id)
     db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    shutil.rmtree(project["root_dir"], ignore_errors=True)
 
 
 def update_project_status(db: Database, project_id: str, status: str) -> None:
@@ -42,3 +44,27 @@ def update_project_status(db: Database, project_id: str, status: str) -> None:
         (status, utc_now(), project_id),
     )
 
+
+def update_project(
+    db: Database,
+    project_id: str,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    source_type: Optional[str] = None,
+) -> Dict:
+    current = get_project(db, project_id)
+    db.execute(
+        """
+        UPDATE projects
+        SET name = ?, description = ?, source_type = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (
+            name if name is not None else current["name"],
+            description if description is not None else current["description"],
+            source_type if source_type is not None else current["source_type"],
+            utc_now(),
+            project_id,
+        ),
+    )
+    return get_project(db, project_id)
