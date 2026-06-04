@@ -1,0 +1,53 @@
+name: iOS CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ios-ci.yml"
+      - "ios/Real2MotrixCapture/**"
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/ios-ci.yml"
+      - "ios/Real2MotrixCapture/**"
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Real2MotrixCapture
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios/Real2MotrixCapture
+        run: xcodegen generate
+
+      - name: Build for iOS Simulator
+        working-directory: ios/Real2MotrixCapture
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Real2MotrixCapture.xcodeproj \
+            -scheme Real2MotrixCapture \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee "$RUNNER_TEMP/ios-ci-build.log"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-build-log
+          path: ${{ runner.temp }}/ios-ci-build.log
+          if-no-files-found: ignore
