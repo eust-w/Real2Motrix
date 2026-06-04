@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { Maximize2, Minimize2 } from "lucide-react";
 import type { Locale, Translator } from "../lib/i18n";
 
 export type PreviewMode = "scene" | "visual" | "collision";
@@ -75,6 +76,7 @@ export function MeshPreview({
   const [message, setMessage] = useState(t("preview.unavailable"));
   const [sceneIndex, setSceneIndex] = useState<SceneIndex | null>(null);
   const [manifest, setManifest] = useState<AssetManifest | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -92,6 +94,17 @@ export function MeshPreview({
       disposed = true;
     };
   }, [sceneUrl, manifestUrl]);
+
+  useEffect(() => {
+    if (!isFullscreen) return undefined;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (!container) return undefined;
@@ -208,7 +221,7 @@ export function MeshPreview({
           group.add(await loadCollisionObject(collisionUrl, false));
         }
         if (disposed) return;
-        frameObject(group, scene, controls);
+        frameObjectForPreview(group, scene, controls);
         scene.add(group);
         setMessage("");
       } catch {
@@ -241,7 +254,7 @@ export function MeshPreview({
   const objectCount = selectedStats?.object_count ?? manifest?.segmentation?.object_count ?? manifest?.objects?.length ?? 0;
 
   return (
-    <div className="mesh-preview-wrap">
+    <div className={isFullscreen ? "mesh-preview-wrap fullscreen" : "mesh-preview-wrap"}>
       <div className="mesh-toolbar" role="tablist" aria-label={t("preview.subtitle")}>
         <button className={mode === "scene" ? "selected" : ""} onClick={() => onModeChange("scene")}>
           {t("preview.motrixScene")}
@@ -251,6 +264,16 @@ export function MeshPreview({
         </button>
         <button className={mode === "collision" ? "selected" : ""} onClick={() => onModeChange("collision")}>
           {t("preview.collisionAsset")}
+        </button>
+        <button
+          className="fullscreen-toggle"
+          type="button"
+          aria-pressed={isFullscreen}
+          aria-label={isFullscreen ? t("preview.exitFullscreen") : t("preview.enterFullscreen")}
+          onClick={() => setIsFullscreen((current) => !current)}
+        >
+          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          {isFullscreen ? t("preview.exitFullscreen") : t("preview.enterFullscreen")}
         </button>
       </div>
       <div className="scene-meta">
@@ -277,15 +300,19 @@ function objectColor(index: number) {
   return colors[index % colors.length];
 }
 
-function frameObject(group: THREE.Group, scene: THREE.Scene, controls: OrbitControls) {
+export function frameObjectForPreview(
+  group: THREE.Group,
+  scene: THREE.Scene,
+  controls: Pick<OrbitControls, "target">
+) {
   const box = new THREE.Box3().setFromObject(group);
   if (box.isEmpty()) return;
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
   const maxAxis = Math.max(size.x, size.y, size.z);
   const scale = maxAxis > 0 ? 2.25 / maxAxis : 1;
-  group.position.set(-center.x, -center.y, -box.min.z);
   group.scale.setScalar(scale);
+  group.position.set(-center.x * scale, -center.y * scale, -box.min.z * scale);
   controls.target.set(0, 0, (size.z * scale) / 2);
   scene.updateMatrixWorld();
 }

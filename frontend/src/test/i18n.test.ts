@@ -21,6 +21,13 @@ describe("i18n", () => {
     expect(translate("en", "workspace.noProject")).toBe("No task selected");
   });
 
+  it("translates fullscreen preview controls", () => {
+    expect(translate("zh", "preview.enterFullscreen")).toBe("全屏预览");
+    expect(translate("zh", "preview.exitFullscreen")).toBe("退出全屏");
+    expect(translate("en", "preview.enterFullscreen")).toBe("Fullscreen");
+    expect(translate("en", "preview.exitFullscreen")).toBe("Exit fullscreen");
+  });
+
   it("recognizes supported locales and toggles between them", () => {
     expect(isLocale("zh")).toBe(true);
     expect(isLocale("en")).toBe(true);

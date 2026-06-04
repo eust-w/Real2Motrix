@@ -380,6 +380,28 @@ select {
   position: relative;
 }
 
+.mesh-preview-wrap.fullscreen {
+  position: fixed;
+  inset: 18px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
+}
+
+.mesh-preview-wrap.fullscreen::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(15, 23, 42, 0.42);
+}
+
 .mesh-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -395,6 +417,13 @@ select {
   border-radius: 8px;
   padding: 8px 12px;
   font-weight: 800;
+}
+
+.mesh-toolbar .fullscreen-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .mesh-toolbar .selected,
@@ -429,6 +458,12 @@ select {
   border: 1px solid #dbe3ed;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.mesh-preview-wrap.fullscreen .mesh-preview {
+  flex: 1 1 auto;
+  min-height: 620px;
+  height: calc(100vh - 190px);
 }
 
 .mesh-preview canvas {
