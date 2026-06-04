@@ -1,0 +1,44 @@
+import uuid
+from pathlib import Path
+from typing import Dict, List
+
+from app.database import Database, utc_now
+
+
+def create_project(db: Database, data_dir: Path, name: str, description: str, source_type: str) -> Dict:
+    project_id = str(uuid.uuid4())
+    now = utc_now()
+    root_dir = data_dir / project_id
+    root_dir.mkdir(parents=True, exist_ok=True)
+    db.execute(
+        """
+        INSERT INTO projects (id, name, description, source_type, status, root_dir, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (project_id, name, description, source_type, "created", str(root_dir), now, now),
+    )
+    return get_project(db, project_id)
+
+
+def get_project(db: Database, project_id: str) -> Dict:
+    project = db.fetch_one("SELECT * FROM projects WHERE id = ?", (project_id,))
+    if not project:
+        raise KeyError(project_id)
+    return project
+
+
+def list_projects(db: Database) -> List[Dict]:
+    return db.fetch_all("SELECT * FROM projects ORDER BY created_at DESC")
+
+
+def delete_project(db: Database, project_id: str) -> None:
+    get_project(db, project_id)
+    db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+
+
+def update_project_status(db: Database, project_id: str, status: str) -> None:
+    db.execute(
+        "UPDATE projects SET status = ?, updated_at = ? WHERE id = ?",
+        (status, utc_now(), project_id),
+    )
+

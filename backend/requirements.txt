@@ -1,0 +1,9 @@
+fastapi==0.115.6
+httpx==0.28.1
+numpy==2.0.2
+pillow==11.1.0
+pydantic-settings==2.7.1
+python-multipart==0.0.20
+scikit-learn==1.6.1
+trimesh==4.5.3
+uvicorn[standard]==0.34.0

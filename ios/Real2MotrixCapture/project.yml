@@ -1,0 +1,19 @@
+name: Real2MotrixCapture
+options:
+  bundleIdPrefix: local.real2motrix
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  Real2MotrixCapture:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/Real2MotrixCapture
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.real2motrix.capture
+        INFOPLIST_KEY_NSCameraUsageDescription: Real2Motrix captures RGB frames for local 3D reconstruction.
+        INFOPLIST_KEY_NSMotionUsageDescription: Real2Motrix records motion data for capture quality analysis.
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Real2Motrix uploads capture sessions to your local backend.
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+
