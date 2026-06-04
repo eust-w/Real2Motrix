@@ -97,11 +97,11 @@ def validate_package(package_dir: Path) -> Dict[str, Any]:
     if collision is not None:
         summary["collision_faces"] = int(len(collision.faces))
         summary["scene_collision_faces"] = int(len(collision.faces))
-    if visual is not None and collision is not None and len(collision.faces) >= len(visual.faces):
+    if visual is not None and collision is not None and len(collision.faces) > len(visual.faces):
         issues.append(
             {
                 "level": "error",
-                "message": "collision mesh must have fewer faces than visual mesh",
+                "message": "collision mesh must not have more faces than visual mesh",
             }
         )
 

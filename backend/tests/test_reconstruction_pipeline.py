@@ -74,3 +74,66 @@ def test_colmap_openmvs_uses_video_oriented_quality_options(tmp_path: Path, monk
     densify_command = next(command for command in commands if command[0] == "DensifyPointCloud")
     assert densify_command[densify_command.index("--resolution-level") + 1] == "0"
     assert densify_command[densify_command.index("--number-views") + 1] == "8"
+
+
+def test_colmap_openmvs_falls_back_to_weak_mesh_when_default_cleanup_removes_all_faces(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image_dir = tmp_path / "frames"
+    image_dir.mkdir()
+    (image_dir / "frame_000001.jpg").write_bytes(b"fake image")
+    work_dir = tmp_path / "work"
+    commands: list[list[str]] = []
+    messages: list[tuple[str, str]] = []
+
+    def fake_run_command(command, cwd, log=None, timeout=None) -> None:
+        command_list = [str(item) for item in command]
+        commands.append(command_list)
+        if command_list[:2] == ["colmap", "mapper"]:
+            (work_dir / "sparse" / "0").mkdir(parents=True)
+        if command_list[:2] == ["colmap", "image_undistorter"]:
+            (work_dir / "undistorted" / "sparse").mkdir(parents=True)
+            (work_dir / "undistorted" / "sparse" / "cameras.bin").write_bytes(b"cameras")
+        if command_list[0] == "InterfaceCOLMAP":
+            (work_dir / "mvs" / "scene.mvs").write_bytes(b"scene")
+        if command_list[0] == "DensifyPointCloud":
+            (work_dir / "mvs" / "scene_dense.mvs").write_bytes(b"dense")
+        if command_list[0] == "ReconstructMesh" and "--remove-spurious" in command_list:
+            (work_dir / "mvs" / "scene_dense_mesh_weak.ply").write_text(
+                "\n".join(
+                    [
+                        "ply",
+                        "format ascii 1.0",
+                        "element vertex 3",
+                        "property float x",
+                        "property float y",
+                        "property float z",
+                        "element face 1",
+                        "property list uchar int vertex_indices",
+                        "end_header",
+                        "0 0 0",
+                        "1 0 0",
+                        "0 1 0",
+                        "3 0 1 2",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+    monkeypatch.setattr(colmap_runner, "require_dependencies", lambda dependencies: None)
+    monkeypatch.setattr(colmap_runner, "run_command", fake_run_command)
+    monkeypatch.setattr(colmap_runner, "_select_best_sparse_model", lambda sparse_dir, log=None: sparse_dir / "0")
+
+    result = colmap_runner.reconstruct_images_with_colmap_openmvs(
+        image_dir,
+        work_dir,
+        log=lambda level, message: messages.append((level, message)),
+    )
+
+    assert result == work_dir / "mvs" / "scene_dense_mesh_weak.ply"
+    reconstruct_commands = [command for command in commands if command[0] == "ReconstructMesh"]
+    assert len(reconstruct_commands) == 2
+    assert "--remove-spurious" in reconstruct_commands[1]
+    assert not any(command[0] == "RefineMesh" for command in commands)
+    assert any(level == "warn" and "weak mesh" in message for level, message in messages)

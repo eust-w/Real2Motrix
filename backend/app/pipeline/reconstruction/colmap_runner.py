@@ -138,15 +138,57 @@ def reconstruct_images_with_colmap_openmvs(
         raise RuntimeError("DensifyPointCloud completed but scene_dense.mvs was not found")
 
     mesh_ply = dense_dir / "scene_dense_mesh.ply"
+    _unlink_if_exists(mesh_ply)
     run_command(["ReconstructMesh", "-i", dense_mvs, "-o", mesh_ply], cwd=dense_dir, log=log)
     if not mesh_ply.exists():
-        raise RuntimeError("ReconstructMesh completed but scene_dense_mesh.ply was not found")
+        weak_mesh_ply = dense_dir / "scene_dense_mesh_weak.ply"
+        _unlink_if_exists(weak_mesh_ply)
+        if log:
+            log(
+                "warn",
+                "OpenMVS default mesh cleanup produced no mesh; retrying with weak mesh cleanup. "
+                "The result may be low-detail if the capture has little parallax or texture.",
+            )
+        run_command(
+            [
+                "ReconstructMesh",
+                "-i",
+                dense_mvs,
+                "-o",
+                weak_mesh_ply,
+                "--remove-spurious",
+                "0",
+                "--remove-spikes",
+                "0",
+                "--close-holes",
+                "0",
+                "--smooth",
+                "0",
+            ],
+            cwd=dense_dir,
+            log=log,
+        )
+        if weak_mesh_ply.exists() and _read_ply_face_count(weak_mesh_ply) > 0:
+            if log:
+                log(
+                    "warn",
+                    "Using weak mesh fallback because the default OpenMVS cleanup removed all faces. "
+                    "Recapture with slower motion, more side-to-side parallax, and more textured overlap for better quality.",
+                )
+            return weak_mesh_ply
+        raise RuntimeError(
+            "ReconstructMesh produced no usable mesh. The capture appears under-constrained; "
+            "recapture with slower motion, more side-to-side parallax, and more textured overlap."
+        )
 
     refined_ply = dense_dir / "scene_dense_mesh_refine.ply"
+    _unlink_if_exists(refined_ply)
     run_command(["RefineMesh", "-i", dense_mvs, "-m", mesh_ply, "-o", refined_ply], cwd=dense_dir, log=log)
     if not refined_ply.exists():
         raise RuntimeError("RefineMesh completed but scene_dense_mesh_refine.ply was not found")
 
+    textured_obj = dense_dir / "scene_dense_mesh_refine_texture.obj"
+    _unlink_if_exists(textured_obj)
     run_command(
         [
             "TextureMesh",
@@ -157,15 +199,38 @@ def reconstruct_images_with_colmap_openmvs(
             "--export-type",
             "obj",
             "-o",
-            dense_dir / "scene_dense_mesh_refine_texture.obj",
+            textured_obj,
         ],
         cwd=dense_dir,
         log=log,
     )
-    textured_obj = dense_dir / "scene_dense_mesh_refine_texture.obj"
     if not textured_obj.exists():
         raise RuntimeError("OpenMVS completed but textured OBJ was not found")
     return textured_obj
+
+
+def _unlink_if_exists(path: Path) -> None:
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _read_ply_face_count(path: Path) -> int:
+    header = bytearray()
+    with path.open("rb") as handle:
+        while b"end_header\n" not in header:
+            chunk = handle.readline()
+            if not chunk:
+                break
+            header.extend(chunk)
+            if len(header) > 65536:
+                break
+    text = header.decode("ascii", errors="ignore")
+    match = re.search(r"^element\s+face\s+(\d+)\s*$", text, re.MULTILINE)
+    if not match:
+        return 0
+    return int(match.group(1))
 
 
 def _select_best_sparse_model(
