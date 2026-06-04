@@ -495,6 +495,19 @@ select {
   gap: 9px;
 }
 
+.logs {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.log-window-note {
+  margin: -6px 0 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .asset-row,
 .issue-row,
 .log-row {
@@ -547,8 +560,16 @@ select {
 }
 
 .log-row {
-  grid-template-columns: 74px 56px 1fr;
+  grid-template-columns: 62px 38px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
   font-family: "SFMono-Regular", Consolas, monospace;
+  line-height: 1.4;
+}
+
+.log-row span {
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .log-row.error {
