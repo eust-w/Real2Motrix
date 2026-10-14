@@ -1,206 +1,80 @@
-# Real2Motrix
+<div align="center">
+  <img src="docs/readme/hero.svg" width="100%" alt="Real2Motrix workflow overview">
+  <h1>Real2Motrix</h1>
+  <p><strong>Capture the real world. Export a simulation scene.</strong></p>
+  <p><a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-d99536?style=flat-square"></a> <a href="docs/readme/validation.md"><img alt="Validation notes" src="https://img.shields.io/badge/Validation-repository%20checks-547ac4?style=flat-square"></a></p>
+  <p><a href="#overview">Overview</a> · <a href="#quick-start">Quick start</a> · <a href="#workflow">Workflow</a> · <a href="#validation">Validation</a> · <a href="#documentation">Docs</a></p>
+  <p><a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a></p>
+</div>
 
-Real2Motrix converts real-world capture data into a local MotrixSim-compatible scene package. It includes:
+---
 
-- `ios/Real2MotrixCapture`: SwiftUI + ARKit capture app source
-- `backend`: FastAPI + SQLite backend and plain local Python worker
-- `frontend`: Vite React TypeScript B/S management UI with three.js OBJ preview
-- `scripts`: dependency checks and macOS install helper
+<a id="overview"></a>
+## Overview
 
-No Docker, no cloud service, no Redis/Celery, no distributed architecture, and no fabricated successful pipeline runs.
+A local toolchain for ARKit capture, mesh processing and MJCF / URDF scene packaging. Start with an original synthetic mesh, then add reconstruction tools as your input type requires.
 
-## Architecture
+| Capability | What it provides |
+| :--- | :--- |
+| **Native capture** | SwiftUI / ARKit source; real devices require Xcode and signing. |
+| **Local processing** | FastAPI, SQLite and an independent Python worker. |
+| **Scene export** | Visual/collision meshes, MJCF, URDF, metadata and ZIP validation. |
 
-```mermaid
-flowchart LR
-  A["iPhone/iPad ARKit capture"] --> B["capture_session.zip"]
-  C["Web upload: images/video/mesh/point cloud/export zip"] --> D["FastAPI backend"]
-  B --> D
-  D --> E["SQLite + local project files"]
-  E --> F["Python worker process"]
-  F --> G["ffmpeg / COLMAP / OpenMVS / Blender / Open3D / trimesh"]
-  G --> H["visual mesh + collision mesh"]
-  H --> I["MJCF scene.xml + URDF scene.urdf + MSD scene.json"]
-  I --> J["motrix_scene.zip"]
-  J --> K["MotrixSim Web Viewer import"]
-```
+### Local demo
 
-## Local Setup
+![Real2Motrix synthetic mesh export](docs/readme/demo.jpg)
 
-Backend:
+*Original synthetic mesh exported and validated through the local API and worker.*
 
-```bash
-cd backend
-python3 -m venv ../.venv
-../.venv/bin/pip install -r requirements-dev.txt
-../.venv/bin/python -m app.main
-```
-
-Worker:
+<a id="quick-start"></a>
+## Quick start
 
 ```bash
-cd backend
-../.venv/bin/python -m app.worker
+git clone https://github.com/eust-w/Real2Motrix.git
+cd Real2Motrix
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements-dev.txt
+python scripts/synthetic_demo.py
 ```
 
-Frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open the web UI at `http://localhost:5173`.
-
-## Native Dependencies
-
-Check current machine state:
-
-```bash
-python3 scripts/check_dependencies.py
-```
-
-Install Homebrew-provided tools:
-
-```bash
-scripts/install_macos_deps.sh
-```
-
-Required by source type:
-
-- Mesh inputs: Python backend deps and `trimesh`; FBX conversion additionally requires Blender.
-- Point clouds: Open3D installed in the backend environment with `../.venv/bin/pip install -r requirements-pipeline.txt`.
-- Video: `ffmpeg`, then the image reconstruction requirements.
-- Images and normal iOS capture reconstruction: `COLMAP` and OpenMVS executables on PATH.
-- iOS app build/run: full Xcode selected with `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
-- iOS project generation: `xcodegen`, installed with `brew install xcodegen`.
-
-If a required dependency is missing, the job fails with a clear log entry. The worker does not create placeholder meshes or mark a skipped reconstruction as successful.
-
-## API
-
-Implemented endpoints:
-
-- `POST /api/projects`
-- `GET /api/projects`
-- `GET /api/projects/{project_id}`
-- `DELETE /api/projects/{project_id}`
-- `POST /api/projects/{project_id}/upload`
-- `POST /api/projects/{project_id}/capture-sessions`
-- `POST /api/projects/{project_id}/run`
-- `GET /api/jobs/{job_id}`
-- `GET /api/jobs/{job_id}/logs`
-- `GET /api/projects/{project_id}/assets`
-- `GET /api/projects/{project_id}/download`
-- `GET /api/projects/{project_id}/preview/visual`
-- `GET /api/projects/{project_id}/preview/collision`
-- `POST /api/projects/{project_id}/validate`
-- `GET /api/projects/{project_id}/files/{path}`
-- `GET /api/health`
-
-## iOS Capture
-
-The capture app source lives in `ios/Real2MotrixCapture/Sources/Real2MotrixCapture`.
-
-The app records:
-
-- RGB frames as JPEG
-- Camera intrinsics
-- ARKit camera poses in meters
-- Timestamps
-- Device and capture metadata
-- Depth PNGs when `sceneDepth` is available
-- ARMeshAnchor OBJ when scene reconstruction is available
-- Quality report with brightness, blur, tracking, movement, coverage, and warnings
-
-`project.yml` is provided for XcodeGen users:
-
-```bash
-cd ios/Real2MotrixCapture
-xcodegen generate
-open Real2MotrixCapture.xcodeproj
-```
-
-Run on a real iPhone/iPad. Simulator validation is not sufficient for ARKit capture, LiDAR, depth, or local network upload.
-
-## Input Workflows
-
-iPhone capture to MotrixSim:
-
-1. Start backend, worker, and frontend.
-2. In the iOS app, enter the backend LAN URL, test connection, create/select a project.
-3. Capture RGB/pose/depth data and generate `capture_session.zip`.
-4. Upload from the app; it calls `POST /api/projects/{project_id}/capture-sessions`.
-5. Worker reconstructs through COLMAP/OpenMVS and exports Motrix files.
-6. Download `motrix_scene.zip` from the web UI.
-7. Unzip and drag the whole `motrix_scene` folder into MotrixSim Web Viewer.
-8. Load `scene.xml`, `scene.urdf`, or `scene.json`.
-
-Video to MotrixSim:
-
-1. Create a project in the web UI.
-2. Choose `video`, upload a real video file, then start the pipeline.
-3. Worker extracts frames with `ffmpeg`, reconstructs with COLMAP/OpenMVS, cleans meshes, validates, and packages.
-
-Mesh to MotrixSim:
-
-1. Choose `mesh`, upload OBJ/GLB/GLTF/STL/FBX/PLY mesh.
-2. Worker converts to OBJ when needed, cleans/aligned units, creates a lower-face collision mesh, writes Motrix files, validates, and zips.
-
-Point cloud to MotrixSim:
-
-1. Choose `pointcloud`, upload PLY/PCD.
-2. Worker uses Open3D Poisson reconstruction before the shared mesh pipeline.
-
-## Output Package
-
-Generated package:
+<a id="workflow"></a>
+## Workflow
 
 ```text
-outputs/{project_id}/motrix_scene/
-  scene.xml
-  scene.urdf
-  scene.json
-  meshes/
-    scene_visual.obj
-    scene_collision.obj
-    objects/
-      object_001/
-        visual.obj
-        collision.obj
-  textures/
-  metadata/
-    asset_manifest.json
-    scene_manifest.json
-    object_manifest.json
-    semantic.json
-    reconstruction_report.json
-    validation_report.json
-  raw/
-    source_info.json
-  README.md
+CAPTURE → RECONSTRUCT → EXPORT
 ```
-
-`scene_visual.obj` / `scene_collision.obj` remain the static environment entry for compatibility. When separable geometry is found, object candidates are exported under `meshes/objects/{object_id}/` and referenced from `scene.xml`, `scene.urdf`, `scene.json`, and `metadata/asset_manifest.json`.
-
-Validation checks XML/JSON parseability, relative paths, scene/object mesh existence, mesh loadability, bbox sanity, asset manifest presence, object count, and scene collision face count lower than visual face count.
-
-## Tests
-
-Backend:
 
 ```bash
-cd backend
-../.venv/bin/python -m pytest
+# In separate terminals, with the virtual environment active:
+cd backend && python -m app.main
+cd backend && python -m app.worker
+cd frontend && npm ci && npm run dev
 ```
 
-Frontend:
+<a id="validation"></a>
+## Validation
 
 ```bash
-cd frontend
-npm test
-npm run build
+cd backend && ../.venv/bin/python -m pytest
+cd ../frontend && npm test && npm run build
 ```
 
-Current machine note: Swift CLI is installed, but `xcodebuild` points to CommandLineTools, so iOS build/run cannot be verified until full Xcode is selected.
+Recorded environment and executed checks: [validation notes](docs/readme/validation.md).
+
+| Area | Current boundary |
+| :--- | :--- |
+| Synthetic mesh | The bundled demo creates original geometry and validates XML / URDF / JSON / ZIP. |
+| Reconstruction | COLMAP / OpenMVS / Blender / Open3D are optional native dependencies; image tests using fake commands do not verify real reconstruction. |
+| iOS | Real-device capture, signing and TestFlight are separate acceptance steps. |
+
+<a id="documentation"></a>
+## Docs
+
+- [Pipeline / 流水线](backend/app/pipeline/full_pipeline.py)
+- [Backend tests / 后端测试](backend/tests/)
+- [iOS release / iOS 发布](docs/ios-release.md)
+
+## License and provenance
+
+Original code and newly created demo assets are licensed under [Apache-2.0](LICENSE). Dependencies, models, datasets and external resources retain their terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
