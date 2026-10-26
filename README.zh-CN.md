@@ -30,6 +30,13 @@
 
 *自产网格通过本机 API/worker 完成导出与场景包校验。*
 
+[观看51秒介绍视频](https://youtu.be/82gHy-zrwwU) ·
+[抖音](https://www.douyin.com/video/7700918154871983395) ·
+[下载 Alpha 与演示资产](https://github.com/eust-w/Real2Motrix/releases/tag/v0.1.0-alpha.1) ·
+[X 发布动态](https://x.com/eustancewu/status/2114658476182139156)
+
+介绍片采用真实软件录屏、原创合成几何和合成配音，不代表真实采集的重建质量。
+
 <a id="quick-start"></a>
 ## 快速开始
 

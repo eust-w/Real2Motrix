@@ -31,6 +31,14 @@ criteria and [SECURITY.md](SECURITY.md) before using a network connection.
 
 *Original synthetic mesh exported and validated through the local API and worker.*
 
+[Watch the 51-second introduction](https://youtu.be/82gHy-zrwwU) ·
+[Douyin](https://www.douyin.com/video/7700918154871983395) ·
+[Download the Alpha and demo assets](https://github.com/eust-w/Real2Motrix/releases/tag/v0.1.0-alpha.1) ·
+[Launch announcement on X](https://x.com/eustancewu/status/2114658476182139156)
+
+The introduction uses real software capture with original synthetic geometry and
+synthetic narration. It is not evidence of real-world scan quality.
+
 <a id="quick-start"></a>
 ## Quick start
 

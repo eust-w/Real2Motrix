@@ -12,6 +12,26 @@ It is **not a phone scan, video reconstruction, 3DGS result or physics benchmark
 No private recordings, external models, music or signing material are included.
 Chinese narration is synthesized with macOS `say` (Tingting).
 
+## Published links
+
+Verified on 2026-10-26:
+
+- [GitHub Alpha release](https://github.com/eust-w/Real2Motrix/releases/tag/v0.1.0-alpha.1):
+  original demo package, horizontal and vertical 1080p videos, and Chinese subtitles.
+- [Gitea Alpha release](https://gitea.d-robotics.cc/longtao.wu/Real2Motrix/releases/tag/v0.1.0-alpha.1):
+  source/tag mirror and links to the downloadable GitHub assets.
+- [YouTube introduction](https://youtu.be/82gHy-zrwwU): published with public visibility.
+- [X announcement with video](https://x.com/eustancewu/status/2114658476182139156):
+  published with an AI-content disclosure.
+- [Douyin introduction](https://www.douyin.com/video/7700918154871983395):
+  review passed; public playback and AI-content disclosure verified.
+
+Both source releases target `d13e06907b5c25144656c58262e4d0dc9f7b5726`.
+[Core CI passed](https://github.com/eust-w/Real2Motrix/actions/runs/40302206805).
+Other platform submissions are not claimed as public until independently verified.
+
+## Local artifacts
+
 The local launch directory is ignored by Git:
 
 | File | Purpose |
@@ -58,7 +78,8 @@ recordings and runtime databases are not release assets.
 - Python 3.12: 17 backend tests passed after dependency updates.
 - Node 24: 17 frontend tests passed, including 4 path-display regression tests.
 - `npm audit` and requirements-based `pip-audit`: no known vulnerabilities.
-- Gitleaks: 10 fetched history commits scanned; no detected credentials.
+- Gitleaks: 11 fetched history commits, including the launch changes, scanned;
+  no detected credentials.
 - Original geometry passed the actual HTTP API/worker path and package validation:
   3 object candidates, XML/URDF/JSON/ZIP files. This demonstrates packaging only.
 - Browser: fullscreen preview rendered, orbit changed pixels, no page errors.
