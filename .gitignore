@@ -1,5 +1,13 @@
 .DS_Store
 .venv/
+.venv-*/
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.p12
+*.mobileprovision
+artifacts/
 __pycache__/
 *.pyc
 .pytest_cache/

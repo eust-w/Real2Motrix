@@ -2,6 +2,7 @@ import { Eye, FileArchive, FileText } from "lucide-react";
 import type { Translator } from "../lib/i18n";
 import type { Asset } from "../lib/types";
 import type { PreviewMode } from "./MeshPreview";
+import { displayAssetPath } from "../lib/assetPath";
 
 export function AssetTree({
   assets,
@@ -39,7 +40,7 @@ export function AssetTree({
                 <FileText size={16} />
                 <div>
                   <strong>{assetLabel(asset, t)}</strong>
-                  <span>{asset.path}</span>
+                  <span>{displayAssetPath(asset.path)}</span>
                 </div>
                 {previewMode ? (
                   <button

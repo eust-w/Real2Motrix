@@ -14,6 +14,11 @@
 
 A local toolchain for ARKit capture, mesh processing and MJCF / URDF scene packaging. Start with an original synthetic mesh, then add reconstruction tools as your input type requires.
 
+**Alpha, local-only.** This is not a production scanning service. Phone capture is
+experimental; trajectory coverage is not surface completeness. There is no 3DGS
+training/rendering pipeline. See [the roadmap](docs/ROADMAP.md) for acceptance
+criteria and [SECURITY.md](SECURITY.md) before using a network connection.
+
 | Capability | What it provides |
 | :--- | :--- |
 | **Native capture** | SwiftUI / ARKit source; real devices require Xcode and signing. |
@@ -28,6 +33,9 @@ A local toolchain for ARKit capture, mesh processing and MJCF / URDF scene packa
 
 <a id="quick-start"></a>
 ## Quick start
+
+Tested toolchain: Python 3.12 and Node 24. Native reconstruction dependencies are
+not required for the synthetic mesh demo.
 
 ```bash
 git clone https://github.com/eust-w/Real2Motrix.git
@@ -74,6 +82,9 @@ Recorded environment and executed checks: [validation notes](docs/readme/validat
 - [Pipeline / 流水线](backend/app/pipeline/full_pipeline.py)
 - [Backend tests / 后端测试](backend/tests/)
 - [iOS release / iOS 发布](docs/ios-release.md)
+- [Contributing](CONTRIBUTING.md)
+- [Roadmap and known limitations](docs/ROADMAP.md)
+- [Launch evidence and video](docs/launch/README.md)
 
 ## License and provenance
 

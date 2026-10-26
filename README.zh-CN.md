@@ -14,6 +14,10 @@
 
 本地 ARKit 采集、网格处理与 MJCF / URDF 场景包工具链。先运行自产合成网格，再按输入类型安装重建工具。
 
+**当前为本地 Alpha 版本。** 手机采集属于实验能力；轨迹网格覆盖率不等于表面扫描完整度。
+当前没有 3DGS 训练与渲染流水线，也不是可直接部署的生产扫描服务。
+验收标准见[路线图](docs/ROADMAP.md)，联网使用前请阅读[安全说明](SECURITY.md)。
+
 | 能力 | 内容 |
 | :--- | :--- |
 | **原生采集** | SwiftUI / ARKit 源码；真机使用需要 Xcode 和签名。 |
@@ -28,6 +32,8 @@
 
 <a id="quick-start"></a>
 ## 快速开始
+
+验证环境为 Python 3.12、Node 24。合成网格演示不依赖 COLMAP / OpenMVS。
 
 ```bash
 git clone https://github.com/eust-w/Real2Motrix.git
@@ -74,6 +80,9 @@ cd ../frontend && npm test && npm run build
 - [Pipeline / 流水线](backend/app/pipeline/full_pipeline.py)
 - [Backend tests / 后端测试](backend/tests/)
 - [iOS release / iOS 发布](docs/ios-release.md)
+- [贡献指南](CONTRIBUTING.md)
+- [路线图与已知限制](docs/ROADMAP.md)
+- [介绍视频与验证证据](docs/launch/README.md)
 
 ## 许可证与来源
 
